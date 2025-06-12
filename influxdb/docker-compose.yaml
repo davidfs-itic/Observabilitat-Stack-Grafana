@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  influxdb:
+    image: influxdb:2.7 # Utilitzem una versió estable d'InfluxDB 2.x
+    container_name: influxdb # Nom del contenidor
+    restart: unless-stopped # Assegura que InfluxDB es reinicia automàticament
+    ports:
+      - "8086:8086" # Mapeja el port 8086 del host al port 8086 del contenidor (port per defecte d'InfluxDB UI/API)
+    volumes:
+      - /opt/docker/influxdb/data:/var/lib/influxdb2 # Volum per a les dades persistents d'InfluxDB
+      # - /opt/docker/influxdb/config:/etc/influxdb2 # Volum opcional per a fitxers de configuració personalitzats
+    environment:
+      # Configuració inicial obligatòria per a InfluxDB 2.x quan s'inicia per primera vegada
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin # Nom d'usuari per defecte
+      - DOCKER_INFLUXDB_INIT_PASSWORD=1357924680 # La contrasenya que heu especificat
+      - DOCKER_INFLUXDB_INIT_ORG=Itic # Nom de l'organització per defecte
+      - DOCKER_INFLUXDB_INIT_BUCKET=bucket1 # Nom del bucket de dades per defecte
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=dshdifuhb9733011237ewfdifnfldksaodhwieugfas # ATENCIÓ: Guardeu aquest token! El necessitareu per accedir a l'API o connectar Grafana.
+    networks:
+      - internal # Connecta InfluxDB a la xarxa definida com a 'internal'
+
+networks:
+  internal:
+    name: xarxa_docker1 # Aquest és el nom real de la xarxa que ja heu creat (amb `docker network create -d bridge xarxa_docker1`)
+    external: true # Indica a Docker Compose que aquesta xarxa ja existeix i no ha de ser gestionada per ell

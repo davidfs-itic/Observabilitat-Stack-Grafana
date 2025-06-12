@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: P@ssw0rd
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - xarxa1
+    ports:
+      - 3306:3306
+networks:
+  xarxa1:
+    name: xarxa_docker1
+    external: true
+
+volumes:
+  mariadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/docker/mariadb/datadir
+

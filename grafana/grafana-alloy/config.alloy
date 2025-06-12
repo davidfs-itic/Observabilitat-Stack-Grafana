@@ -1,0 +1,59 @@
+// grafana-alloy/config.alloy
+logging {
+    level = "info"
+}
+
+loki.source.file "system_logs" {
+    targets = [{ __path__ = "/var/log/*log", job = "varlogs" }]
+    forward_to = [loki.write.default.receiver]
+}
+
+loki.source.docker "docker_logs" {
+    host = "unix:///var/run/docker.sock"
+    forward_to = [loki.write.default.receiver]
+    relabel_rules = [
+        {
+            source_labels = ["__meta_docker_container_name"]
+            regex = "/(.*)"
+            target_label = "container_name"
+        },
+        {
+            source_labels = ["__meta_docker_container_id"]
+            target_label = "instance"
+        },
+    ]
+}
+
+loki.write "default" {
+    endpoint {
+        url = "http://loki:3100/loki/api/v1/push"
+    }
+}
+
+// Per a mètriques (opcional, si vols enviar mètriques també amb Alloy)
+// prometheus.scrape "example_metrics" {
+//    targets    = [{"__address__" = "localhost:8080", "job" = "my_app"}]
+//    forward_to = [prometheus.remote_write.mimir.receiver]
+// }
+
+// prometheus.remote_write "mimir" {
+//     endpoint {
+//         url = "http://mimir:9009/api/v1/push"
+//     }
+// }
+
+// Per a traces (opcional, si vols enviar traces amb Alloy)
+// otelcol.receiver.otlp "tempo_receiver" {
+//     http { endpoint = "0.0.0.0:4318" }
+//     grpc { endpoint = "0.0.0.0:4317" }
+//     output {
+//         traces = [otelcol.exporter.otlp.tempo_exporter.input]
+//     }
+// }
+
+// otelcol.exporter.otlp "tempo_exporter" {
+//     client {
+//         endpoint = "tempo:4317"
+//         tls {}
+//     }
+// }

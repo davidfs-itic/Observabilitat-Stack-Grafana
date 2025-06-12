@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  k6:
+    image: docker pull grafana/k6:1.0.0
+    volumes:
+      - ./tests/test_simple.js:/app/test_simple.js # Munta el teu script de test
+ 
+    environment:
+      # Aquestes variables són opcionals, només si vols exportar a InfluxDB o altres sistemes
+      K6_INFLUXDB_ORGANIZATION: "Itic"
+      K6_INFLUXDB_BUCKET: "k6_metrics"
+      K6_INFLUXDB_TOKEN: "dshdifuhb9733011237ewfdifnfldksaodhwieugfas"
+      K6_INFLUXDB_ADDR: "http://influxdb:8086"
+      # Si la teva API es diu "fastapi_app" a la xarxa "xarxa_docker1"
+      API_BASE_URL: "https://reservesapi" # Utilitza el nom del servei de la teva API a la xarxa
+
+    command: run /app/test_simple.js
+    # Recomanat si vols assegurar que l'API estigui en marxa abans que k6
+    #depends_on:
+    #  - contenidorapi
+    #external_links:
+    #  - reservesapi:contenidorapi
+    networks:
+      - internal # Connecta aquest servei a la xarxa existent
+
+networks:
+  internal:
+    name: xarxa_docker1 # Aquest és el nom real de la xarxa que ja heu creat (amb `docker network create -d bridge xarxa_docker1`)
+    external: true # Indica a Docker Compose que aquesta xarxa ja existeix i no ha de ser gestionada per ell
+

@@ -1,0 +1,19 @@
+server:
+  http_listen_port: 3200
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+  remote_write:
+    - url: http://mimir:9009/api/v1/push # O Prometheus si el tinguessis
+      send_exemplars: true
+
+usage_stats:
+  enabled: false
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /tmp/tempo/blocks

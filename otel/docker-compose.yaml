@@ -1,0 +1,19 @@
+services:
+  otel:
+    image: otel/opentelemetry-collector-contrib:0.128.0
+    container_name: otel
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/collector-config.yaml:/etc/otelcol/config.yaml # Monta tu archivo de configuración
+    ports:
+      - "4317:4317" # Puerto gRPC para OTLP
+      - "4318:4318" # Puerto HTTP para OTLP
+      - "8888:8888" # Puerto para el endpoint de estado/healthcheck del Collector (opcional)
+    networks:
+      - internal # Connecta OpenTelemetry a la xarxa externa
+
+networks:
+  internal:
+    name: xarxa_docker1 # El nom de la xarxa que ja has creat i on InfluxDB està connectat
+    external: true # Indica a Docker Compose que aquesta xarxa ja existeix  

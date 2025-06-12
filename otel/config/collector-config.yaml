@@ -1,0 +1,37 @@
+# collector-config.yaml
+receivers:
+  otlp:
+    protocols:
+      grpc: # Puerto por defecto 4317 para gRPC
+      http: # Puerto por defecto 4318 para HTTP
+
+processors:
+  batch:
+    send_batch_size: 1000
+    timeout: 1s
+ 
+exporters:
+  debug: # Añadimos un exportador de depuración para ver las trazas en los logs del Collector
+    verbosity: detailed 
+  influxdb:
+    endpoint: "http://influxdb:8086" # <-- ¡Importante! Si InfluxDB también está en Docker, usa el nombre del servicio
+    org: "Itic"
+    bucket: "telemetry"
+    token: "dshdifuhb9733011237ewfdifnfldksaodhwieugfas"
+    metrics_schema: "telegraf-prometheus-v2"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [influxdb]
+    # Canonada de traces: DEBE ESTAR DESCOMENTADA Y CONFIGURADA
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug] # Exporta las trazas al exportador 'debug'
+    # logs:
+    #   receivers: [otlp]
+    #   processors: [batch]
+    #   exporters: [loki] # o similar

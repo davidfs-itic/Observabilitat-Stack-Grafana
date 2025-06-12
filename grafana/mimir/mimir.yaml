@@ -1,0 +1,5 @@
+target: all
+common:
+  ring:
+    kvstore:
+      store: inmemory
