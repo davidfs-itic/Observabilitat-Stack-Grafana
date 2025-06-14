@@ -74,7 +74,7 @@ services:
       # - "4318:4318" # OpenTelemetry HTTP - TREURE
       # - "9411:9411" # Zipkin - Pots mantenir-lo si rebs Zipkin directament
       - "3200:3200" # HTTP
-    command: -config.file=/etc/tempo/config.yaml
+    command:  run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     volumes:
       - ./tempo/config.yaml:/etc/tempo/config.yaml:ro
       - tempo_data:/tmp/tempo
