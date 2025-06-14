@@ -1,36 +1,55 @@
-# tempo/config.yaml
+stream_over_http_enabled: true
 server:
-  http_listen_port: 3200 # For HTTP/OpenTelemetry HTTP receiver
-  grpc_listen_port: 9095
+  http_listen_port: 3200
+  log_level: info
+
+query_frontend:
+  search:
+    duration_slo: 5s
+    throughput_bytes_slo: 1.073741824e+09
+    metadata_slo:
+        duration_slo: 5s
+        throughput_bytes_slo: 1.073741824e+09
+  trace_by_id:
+    duration_slo: 5s
 
 distributor:
   receivers:
-    jaeger:
-      thrift_http:
-      grpc:
-    zipkin:
     otlp:
-      http:
-      grpc:
+      protocols:
+        grpc:
+          endpoint: "tempo:4317"
 
 ingester:
-  max_block_duration: 5m       # Max duration of a block before it's cut
-  max_block_bytes: 500Mi       # Max size of a block before it's cut
-  max_block_traces: 50000      # Max number of traces in a block before it's cut
+  max_block_duration: 5m               # cut the headblock when this much time passes. this is being set for demo purposes and should probably be left alone normally
+
+compactor:
+  compaction:
+    block_retention: 1h                # overall Tempo trace retention. set for demo purposes
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: docker-compose
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+  traces_storage:
+    path: /var/tempo/generator/traces
 
 storage:
   trace:
-    backend: local
-    local:
-      path: /tmp/tempo/traces # Corresponds to your tempo_data volume
-    block_retain_period: 24h # Example retention, adjust as needed
+    backend: local                     # backend configuration to use
     wal:
-      path: /tmp/tempo/wal # WAL directory for temporary writes
-
-compactor:
-  compaction_interval: 10m
-  compactor_blocks_retention: 1h # How long compactor retains blocks after compaction
+      path: /var/tempo/wal             # where to store the wal locally
+    local:
+      path: /var/tempo/blocks
 
 overrides:
-  # Limit of 200,000 spans per trace
-  max_spans_per_trace: 200000
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics, local-blocks] # enables metrics generator
+      generate_native_histograms: both
