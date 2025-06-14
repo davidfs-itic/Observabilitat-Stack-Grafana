@@ -1,0 +1,94 @@
+// grafana-alloy/config.alloy
+
+// -----------------------------------------------------------------------------
+// OpenTelemetry Collector Configuration
+// Receives OTLP data (metrics, logs, traces) from applications.
+// -----------------------------------------------------------------------------
+receivers {
+  otlp {
+    http {
+      endpoint = "0.0.0.0:4318" // Listen for OTLP/HTTP
+    }
+    grpc {
+      endpoint = "0.0.0.0:4317" // Listen for OTLP/gRPC
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Logging Configuration
+// Scrapes logs from host and Docker containers, and receives OTLP logs.
+// Forwards all collected logs to Loki.
+// -----------------------------------------------------------------------------
+logs {
+  // Scrape logs from the host system
+  local {
+    name = "host_logs"
+    directory = "/var/log"
+    targets = [
+      "/var/log/syslog",
+      "/var/log/auth.log",
+      "/var/log/kern.log",
+      "/var/log/daemon.log",
+      // Add other host log files as needed
+    ]
+    forward_to = [loki.source.push.main_loki_output.receiver]
+  }
+
+  // Scrape logs from Docker containers
+  docker {
+    name = "docker_logs"
+    host_path = "/var/lib/docker/containers"
+    match_all = true // Collect logs from all containers
+    forward_to = [loki.source.push.main_loki_output.receiver]
+  }
+
+  // Receive logs from OpenTelemetry Collector
+  otelcol_receiver {
+    input = receivers.otlp.logs_receiver
+    forward_to = [loki.source.push.main_loki_output.receiver]
+  }
+
+  // Send all collected logs to Loki
+  loki {
+    source "main_loki_output" {
+      endpoint = "http://loki:3100/loki/api/v1/push"
+      tenant_id = "tenant1"
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Metrics Configuration
+// Receives OTLP metrics and forwards them to Mimir.
+// -----------------------------------------------------------------------------
+metrics {
+  otelcol_receiver {
+    input = receivers.otlp.metrics_receiver
+    forward_to = [mimir.write.main_mimir_output.receiver]
+  }
+
+  mimir {
+    write "main_mimir_output" {
+      endpoint = "http://mimir:9009/api/v1/push"
+      tenant_id = "tenant1"
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Traces Configuration
+// Receives OTLP traces and forwards them to Tempo.
+// -----------------------------------------------------------------------------
+traces {
+  otelcol_receiver {
+    input = receivers.otlp.traces_receiver
+    forward_to = [tempo.write.main_tempo_output.receiver]
+  }
+
+  tempo {
+    write "main_tempo_output" {
+      endpoint = "http://tempo:3200/api/traces" // Tempo's OpenTelemetry HTTP receiver
+    }
+  }
+}

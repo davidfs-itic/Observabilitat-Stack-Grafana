@@ -1,19 +1,36 @@
+# tempo/config.yaml
 server:
-  http_listen_port: 3200
+  http_listen_port: 3200 # For HTTP/OpenTelemetry HTTP receiver
+  grpc_listen_port: 9095
 
-metrics_generator:
-  registry:
-    external_labels:
-      source: tempo
-  remote_write:
-    - url: http://mimir:9009/api/v1/push # O Prometheus si el tinguessis
-      send_exemplars: true
+distributor:
+  receivers:
+    jaeger:
+      thrift_http:
+      grpc:
+    zipkin:
+    otlp:
+      http:
+      grpc:
 
-usage_stats:
-  enabled: false
+ingester:
+  max_block_duration: 5m       # Max duration of a block before it's cut
+  max_block_bytes: 500Mi       # Max size of a block before it's cut
+  max_block_traces: 50000      # Max number of traces in a block before it's cut
 
 storage:
   trace:
     backend: local
     local:
-      path: /tmp/tempo/blocks
+      path: /tmp/tempo/traces # Corresponds to your tempo_data volume
+    block_retain_period: 24h # Example retention, adjust as needed
+    wal:
+      path: /tmp/tempo/wal # WAL directory for temporary writes
+
+compactor:
+  compaction_interval: 10m
+  compactor_blocks_retention: 1h # How long compactor retains blocks after compaction
+
+overrides:
+  # Limit of 200,000 spans per trace
+  max_spans_per_trace: 200000

@@ -34,14 +34,16 @@ services:
       - monitoring_network
 
   # Grafana Alloy - Per enviar logs, mètriques i traces (successor de Grafana Agent)
-  grafana-alloy: # Nom del servei canviat a 'grafana-alloy'
+  alloy: # Nom del servei canviat a 'alloy'
     image: grafana/alloy:v1.9.1 # Imatge i versió actualitzades a Grafana Alloy
-    container_name: grafana-alloy
+    container_name: alloy
     ports:
       - "12345:12345" # Port per a l'API d'Alloy
+      - "4317:4317" # OpenTelemetry gRPC
+      - "4318:4318" # OpenTelemetry HTTP
     command: -config.file=/etc/alloy/config.alloy # Canvi de nom de la configuració (.alloy)
     volumes:
-      - ./grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro # Ruta de configuració ajustada
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro # Ruta de configuració ajustada
       - /var/log:/var/log:ro # Per recollir logs del host
       - /var/lib/docker/containers:/var/lib/docker/containers:ro # Per logs de Docker
     restart: unless-stopped
@@ -64,13 +66,13 @@ services:
 
   # Tempo - Sistema d'agregació de traces
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.8.0
     container_name: tempo
     ports:
-      - "14268:14268" # Jaeger gRPC
-      - "4317:4317" # OpenTelemetry gRPC
-      - "4318:4318" # OpenTelemetry HTTP
-      - "9411:9411" # Zipkin
+      # - "14268:14268" # Jaeger gRPC - Pots mantenir-lo si rebs Jaeger directament
+      # - "4317:4317" # OpenTelemetry gRPC - TREURE
+      # - "4318:4318" # OpenTelemetry HTTP - TREURE
+      # - "9411:9411" # Zipkin - Pots mantenir-lo si rebs Zipkin directament
       - "3200:3200" # HTTP
     command: -config.file=/etc/tempo/config.yaml
     volumes:

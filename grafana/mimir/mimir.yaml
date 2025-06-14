@@ -1,5 +1,52 @@
+# mimir/mimir.yaml
 target: all
+
+server:
+  http_listen_port: 9009
+  grpc_listen_port: 9095
+
 common:
+  ring:
+    instance_addr: 127.0.0.1
+    instance_port: 8080
+    kvstore:
+      store: inmemory
+
+blocks_storage:
+  backend: filesystem
+  filesystem:
+    dir: /data/tsdb
+  tsdb_retention_period: 24h # Example retention, adjust as needed
+
+ruler:
+  wal_dir: /data/ruler-wal
+  remote_write:
+    address: http://127.0.0.1:9009/api/v1/push
+  rule_path: /data/rules
+  enable_api: true
+
+compactor:
+  working_directory: /data/compactor
+  blocks_storage_path: /data/tsdb
+
+ingester:
   ring:
     kvstore:
       store: inmemory
+    replication_factor: 1
+  max_transfer_retries: 0
+
+distributor:
+  ring:
+    kvstore:
+      store: inmemory
+    replication_factor: 1
+
+query_frontend:
+  max_retries_per_request: 5
+
+store_gateway:
+  sharding_enabled: false # For single-node setup
+
+querier:
+  max_concurrent_requests: 20
