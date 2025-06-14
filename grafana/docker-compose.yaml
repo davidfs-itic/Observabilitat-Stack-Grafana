@@ -21,7 +21,7 @@ services:
 
   # Loki - Sistema d'agregació de logs
   loki:
-    image: grafana/loki:3.5.1
+    image: grafana/loki
     container_name: loki
     ports:
       - "3100:3100"
@@ -35,7 +35,7 @@ services:
 
   # Grafana Alloy - Per enviar logs, mètriques i traces (successor de Grafana Agent)
   grafana-alloy: # Nom del servei canviat a 'grafana-alloy'
-    image: grafana/alloy:1.3.0 # Imatge i versió actualitzades a Grafana Alloy
+    image: grafana/alloy:v1.9.1 # Imatge i versió actualitzades a Grafana Alloy
     container_name: grafana-alloy
     ports:
       - "12345:12345" # Port per a l'API d'Alloy
@@ -64,7 +64,7 @@ services:
 
   # Tempo - Sistema d'agregació de traces
   tempo:
-    image: grafana/tempo:2.8.0
+    image: grafana/tempo:latest
     container_name: tempo
     ports:
       - "14268:14268" # Jaeger gRPC
@@ -81,7 +81,7 @@ services:
       - monitoring_network
 
 networks:
-  internal:
+  monitoring_network:
     name: xarxa_docker1 # Aquest és el nom real de la xarxa que ja heu creat (amb `docker network create -d bridge xarxa_docker1`)
     external: true # Indica a Docker Compose que aquesta xarxa ja existeix i no ha de ser gestionada per ell
 
