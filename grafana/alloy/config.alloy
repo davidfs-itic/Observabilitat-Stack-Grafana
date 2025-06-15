@@ -1,21 +1,31 @@
-// Configuració senzilla d'Alloy per recollir mètriques i logs
+// Configuració d'Alloy per recollir mètriques i logs
 
 // Descobriment de contenidors Docker
 discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
 }
 
-// Recollir mètriques dels contenidors Docker
+// Recollir mètriques dels contenidors Docker i enviar-les a Prometheus
 prometheus.scrape "docker_containers" {
   targets = discovery.docker.containers.targets
-  forward_to = [prometheus.remote_write.mimir.receiver]
+  forward_to = [prometheus.remote_write.prometheus.receiver]
   scrape_interval = "15s"
 }
 
-// Enviar mètriques a Mimir
-prometheus.remote_write "mimir" {
+// Exposar mètriques pròpies d'Alloy per a que Prometheus les reculli
+prometheus.exporter.self "alloy_metrics" {
+}
+
+prometheus.scrape "alloy_self" {
+  targets = prometheus.exporter.self.alloy_metrics.targets
+  forward_to = [prometheus.remote_write.prometheus.receiver]
+  scrape_interval = "15s"
+}
+
+// Enviar mètriques a Prometheus via remote_write
+prometheus.remote_write "prometheus" {
   endpoint {
-    url = "http://mimir:9009/api/v1/push"
+    url = "http://prometheus:9090/api/v1/write"
   }
 }
 
