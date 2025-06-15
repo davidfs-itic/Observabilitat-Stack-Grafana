@@ -22,7 +22,28 @@ services:
       - loki
       - mimir
       - tempo
+      - prometheus
 
+ # Prometheus - Recol·lector i emmagatzematge de mètriques
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=15d'
+      - '--storage.tsdb.retention.size=10GB'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring_network
   # Loki - Sistema d'agregació de logs
   loki:
     image: grafana/loki:3.4.1
@@ -135,3 +156,10 @@ volumes:
       type: 'none'
       o: 'bind'
       device: '/opt/docker/grafana/alloy_data'
+  # Per a Prometheus, utilitzem un volum per emmagatzemar les dades
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: '/opt/docker/grafana/prometheus_data'      
