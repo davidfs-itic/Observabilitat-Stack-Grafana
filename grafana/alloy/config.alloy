@@ -1,104 +1,69 @@
-// =============================================================================
-// Traces to Tempo
-// =============================================================================
-traces.receiver.otlp "default" {
-  http {
-    endpoint = "0.0.0.0:4318" // OTLP HTTP receiver
+// Configuració senzilla d'Alloy per recollir mètriques i logs
+
+// Descobriment de contenidors Docker
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Recollir mètriques dels contenidors Docker
+prometheus.scrape "docker_containers" {
+  targets = discovery.docker.containers.targets
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  scrape_interval = "15s"
+}
+
+// Enviar mètriques a Mimir
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "http://mimir:9009/api/v1/push"
   }
+}
+
+// Recollir logs dels fitxers del sistema
+loki.source.file "system_logs" {
+  targets = [
+    {__path__ = "/var/log/syslog", job = "syslog"},
+    {__path__ = "/var/log/auth.log", job = "auth"},
+  ]
+  forward_to = [loki.write.loki.receiver]
+}
+
+// Recollir logs dels contenidors Docker
+loki.source.docker "docker_logs" {
+  host = "unix:///var/run/docker.sock"
+  targets = discovery.docker.containers.targets
+  forward_to = [loki.write.loki.receiver]
+  labels = {
+    job = "docker",
+  }
+}
+
+// Enviar logs a Loki
+loki.write "loki" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// Receptor OpenTelemetry per traces
+otelcol.receiver.otlp "traces" {
   grpc {
-    endpoint = "0.0.0.0:4317" // OTLP gRPC receiver
+    endpoint = "0.0.0.0:4317"
   }
-}
-
-traces.exporter.otlp "tempo_exporter" {
-  client {
-    endpoint = "http://your-tempo-instance:4317" // Replace with your Tempo gRPC endpoint
-    // If Tempo requires authentication, add headers here, e.g.:
-    // headers = {
-    //   "Authorization" = "Bearer your-tempo-token"
-    // }
-  }
-}
-
-traces.forwarder "default_traces_forwarder" {
-  input = traces.receiver.otlp.default.output
-  output = traces.exporter.otlp.tempo_exporter.input
-}
-
-// =============================================================================
-// Logs to Loki
-// =============================================================================
-logs.receiver.journald "default" {
-  // Configura segons les teves necessitats per recollir logs del journald
-  // Per exemple, pots filtrar per unitat, etc.
-  // path = "/run/log/journal" // Default path for journald logs
-  // units = ["docker.service"]
-}
-
-// O bé, si reps logs via OTLP (per exemple, des de grafana-agent/fluentbit)
-logs.receiver.otlp "default_otlp_logs" {
   http {
-    endpoint = "0.0.0.0:4319" // OTLP HTTP receiver for logs
+    endpoint = "0.0.0.0:4318"
   }
-  grpc {
-    endpoint = "0.0.0.0:4320" // OTLP gRPC receiver for logs
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
   }
 }
 
-logs.exporter.loki "loki_exporter" {
+// Exportar traces a Tempo
+otelcol.exporter.otlp "tempo" {
   client {
-    url = "http://your-loki-instance:3100/loki/api/v1/push" // Replace with your Loki push endpoint
-    // If Loki requires authentication, add headers here
-    // headers = {
-    //   "X-Scope-OrgID" = "your-tenant-id"
-    // }
-  }
-}
-
-logs.forwarder "default_logs_forwarder" {
-  // Tria la font de logs que utilitzis
-  input = logs.receiver.journald.default.output // Si utilitzes journald
-  // input = logs.receiver.otlp.default_otlp_logs.output // Si reps logs via OTLP
-  output = logs.exporter.loki.loki_exporter.input
-}
-
-
-// =============================================================================
-// Metrics to Mimir
-// =============================================================================
-metrics.receiver.prometheus "default" {
-  // Configura les scraping targets aquí. Aquest és un exemple bàsic.
-  // Pots afegir múltiples `targets` blocks.
-  wal_directory = "/tmp/alloy-wal" // Directory for Write Ahead Log (WAL)
-  scrape_configs {
-    job_name = "alloy_self_scrape"
-    metrics_path = "/metrics"
-    static_targets {
-      targets = ["localhost:9090"] // Replace with your Alloy metrics endpoint if different
+    endpoint = "http://tempo:3200"
+    tls {
+      insecure = true
     }
   }
-  // Altres exemples de scrape_configs:
-  // scrape_configs {
-  //   job_name = "node_exporter"
-  //   static_targets {
-  //     targets = ["your-node-exporter-ip:9100"]
-  //   }
-  // }
-}
-
-metrics.exporter.prometheus.remote_write "mimir_exporter" {
-  client {
-    url = "http://your-mimir-instance:9009/api/v1/push" // Replace with your Mimir remote write endpoint
-    // If Mimir requires authentication, add headers here, e.g.:
-    // headers = {
-    //   "Authorization" = "Bearer your-mimir-token"
-    // }
-  }
-  forward_traces = true // Optionally forward traces through metrics (not common for Mimir)
-  forward_logs = true   // Optionally forward logs through metrics (not common for Mimir)
-}
-
-metrics.forwarder "default_metrics_forwarder" {
-  input = metrics.receiver.prometheus.default.output
-  output = metrics.exporter.prometheus.remote_write.mimir_exporter.input
 }

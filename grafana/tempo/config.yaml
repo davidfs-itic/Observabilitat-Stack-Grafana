@@ -1,55 +1,107 @@
-stream_over_http_enabled: true
 server:
   http_listen_port: 3200
-  log_level: info
+  grpc_listen_port: 9096
+  http_listen_address: 0.0.0.0
+  grpc_listen_address: 0.0.0.0
 
-query_frontend:
-  search:
-    duration_slo: 5s
-    throughput_bytes_slo: 1.073741824e+09
-    metadata_slo:
-        duration_slo: 5s
-        throughput_bytes_slo: 1.073741824e+09
-  trace_by_id:
-    duration_slo: 5s
-
+# Configuració de recepció de traces
 distributor:
   receivers:
+    # OpenTelemetry
     otlp:
       protocols:
         grpc:
-          endpoint: "tempo:4317"
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+    # Jaeger
+    jaeger:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:14250
+        thrift_http:
+          endpoint: 0.0.0.0:14268
+        thrift_compact:
+          endpoint: 0.0.0.0:6831
+        thrift_binary:
+          endpoint: 0.0.0.0:6832
+    # Zipkin
+    zipkin:
+      endpoint: 0.0.0.0:9411
 
+# Ingester - processa i emmagatzema traces
 ingester:
-  max_block_duration: 5m               # cut the headblock when this much time passes. this is being set for demo purposes and should probably be left alone normally
+  lifecycler:
+    address: 0.0.0.0
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+    final_sleep: 0s
+  trace_idle_period: 10s
+  max_block_bytes: 1_000_000
+  max_block_duration: 5m
 
+# Emmagatzematge local
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /tmp/tempo/wal
+    local:
+      path: /tmp/tempo/blocks
+    pool:
+      max_workers: 100
+      queue_depth: 10000
+
+# Compactor - compacta i manté blocs de traces
 compactor:
   compaction:
-    block_retention: 1h                # overall Tempo trace retention. set for demo purposes
+    compaction_window: 1h
+    max_compaction_objects: 1000000
+    block_retention: 1h
+    compacted_block_retention: 10m
 
+# Query Frontend - optimitza consultes de traces
+query_frontend:
+  search:
+    max_duration: 0s
+  trace_by_id:
+    query_timeout: 10s
+
+# Configuració de mètriques generades a partir de traces
 metrics_generator:
   registry:
     external_labels:
       source: tempo
       cluster: docker-compose
   storage:
-    path: /var/tempo/generator/wal
+    path: /tmp/tempo/generator/wal
     remote_write:
-      - url: http://prometheus:9090/api/v1/write
+      - url: http://mimir:9009/api/v1/push
         send_exemplars: true
-  traces_storage:
-    path: /var/tempo/generator/traces
 
-storage:
-  trace:
-    backend: local                     # backend configuration to use
-    wal:
-      path: /var/tempo/wal             # where to store the wal locally
-    local:
-      path: /var/tempo/blocks
+# Límits i configuració de rendiment
+limits:
+  # Límits per trace
+  max_traces_per_user: 10000
+  max_bytes_per_trace: 5000000
+  
+  # Límits de cerca
+  max_search_bytes_per_trace: 0
+  max_search_duration: 0s
+  
+  # Límits de consulta
+  max_bytes_per_tag_values_query: 5000000
 
-overrides:
-  defaults:
-    metrics_generator:
-      processors: [service-graphs, span-metrics, local-blocks] # enables metrics generator
-      generate_native_histograms: both
+# Configuració de cerca i indexació
+search:
+  default_result_limit: 20
+  max_result_limit: 0
+  max_duration: 0s
+
+# Configuració per a Service Graph
+service_graphs:
+  max_items: 10000
+  wait: 3s
+  workers: 10
