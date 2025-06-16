@@ -13,14 +13,14 @@ prometheus.scrape "docker_containers" {
 }
 
 // Exposar mètriques pròpies d'Alloy per a que Prometheus les reculli
-prometheus.exporter.self "alloy_metrics" {
-}
+//prometheus.exporter.self "alloy_metrics" {
+//}
 
-prometheus.scrape "alloy_self" {
-  targets = prometheus.exporter.self.alloy_metrics.targets
-  forward_to = [prometheus.remote_write.prometheus.receiver]
-  scrape_interval = "15s"
-}
+//prometheus.scrape "alloy_self" {
+//  targets = prometheus.exporter.self.alloy_metrics.targets
+//  forward_to = [prometheus.remote_write.prometheus.receiver]
+//  scrape_interval = "15s"
+//}
 
 // Enviar mètriques a Prometheus via remote_write
 prometheus.remote_write "prometheus" {
