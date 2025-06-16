@@ -6,41 +6,43 @@ rule_files:
   # - "first_rules.yml"
   # - "second_rules.yml"
 
+# Configuració de Prometheus per monitoritzar Grafana, Loki, Mimir i Tempo
+# Desactivats per defecte, però pots activar-los si els tens en marxa
 scrape_configs:
-  # Prometheus es monitoritza a si mateix
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
-
-  # Monitoritzar Grafana
-  - job_name: 'grafana'
-    static_configs:
-      - targets: ['grafana:3000']
-    metrics_path: '/metrics'
-
-  # Monitoritzar Loki
-  - job_name: 'loki'
-    static_configs:
-      - targets: ['loki:3100']
-    metrics_path: '/metrics'
+#  # Prometheus es monitoritza a si mateix
+#  - job_name: 'prometheus'
+#    static_configs:
+#      - targets: ['localhost:9090']
+#
+#  # Monitoritzar Grafana
+#  - job_name: 'grafana'
+#    static_configs:
+#      - targets: ['grafana:3000']
+#    metrics_path: '/metrics'
+#
+#  # Monitoritzar Loki
+#  - job_name: 'loki'
+#    static_configs:
+#      - targets: ['loki:3100']
+#    metrics_path: '/metrics'
 
   # Monitoritzar Mimir
-  - job_name: 'mimir'
-    static_configs:
-      - targets: ['mimir:9009']
-    metrics_path: '/metrics'
+  #- job_name: 'mimir'
+  #  static_configs:
+  #    - targets: ['mimir:9009']
+  #  metrics_path: '/metrics'
 
   # Monitoritzar Tempo
-  - job_name: 'tempo'
-    static_configs:
-      - targets: ['tempo:3200']
-    metrics_path: '/metrics'
+  #- job_name: 'tempo'
+  #  static_configs:
+  #    - targets: ['tempo:3200']
+  #  metrics_path: '/metrics'
 
   # Monitoritzar Alloy
-  - job_name: 'alloy'
-    static_configs:
-      - targets: ['alloy:12345']
-    metrics_path: '/metrics'
+  #- job_name: 'alloy'
+  #  static_configs:
+  #    - targets: ['alloy:12345']
+  #  metrics_path: '/metrics'
 
   # Exemple per monitoritzar Node Exporter (si el tens)
   # - job_name: 'node-exporter'
