@@ -71,7 +71,7 @@ otelcol.receiver.otlp "traces" {
 // Exportar traces a Tempo
 otelcol.exporter.otlp "tempo" {
   client {
-    endpoint = "http://tempo:3200"
+    endpoint = "http://tempo:4317"
     tls {
       insecure = true
     }
