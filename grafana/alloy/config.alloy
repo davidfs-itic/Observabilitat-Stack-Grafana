@@ -1,16 +1,16 @@
 // Configuració d'Alloy per recollir mètriques i logs
 
 // Descobriment de contenidors Docker
-discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
-}
+//discovery.docker "containers" {
+//  host = "unix:///var/run/docker.sock"
+//}
 
 // Recollir mètriques dels contenidors Docker i enviar-les a Prometheus
-prometheus.scrape "docker_containers" {
-  targets = discovery.docker.containers.targets
-  forward_to = [prometheus.remote_write.prometheus.receiver]
-  scrape_interval = "15s"
-}
+//prometheus.scrape "docker_containers" {
+//  targets = discovery.docker.containers.targets
+//  forward_to = [prometheus.remote_write.prometheus.receiver]
+//  scrape_interval = "15s"
+//}
 
 // Exposar mètriques pròpies d'Alloy per a que Prometheus les reculli
 //prometheus.exporter.self "alloy_metrics" {
