@@ -2,20 +2,16 @@ version: '3.8'
 
 services:
   k6:
-    image: docker pull grafana/k6:1.0.0
+    image: grafana/k6:1.0.0
     volumes:
-      - ./tests/test_simple.js:/app/test_simple.js # Munta el teu script de test
+      - ./app:/app # Munta el teu script de test
  
     environment:
-      # Aquestes variables són opcionals, només si vols exportar a InfluxDB o altres sistemes
-      K6_INFLUXDB_ORGANIZATION: "Itic"
-      K6_INFLUXDB_BUCKET: "k6_metrics"
-      K6_INFLUXDB_TOKEN: "dshdifuhb9733011237ewfdifnfldksaodhwieugfas"
-      K6_INFLUXDB_ADDR: "http://influxdb:8086"
-      # Si la teva API es diu "fastapi_app" a la xarxa "xarxa_docker1"
-      API_BASE_URL: "https://reservesapi" # Utilitza el nom del servei de la teva API a la xarxa
+      - 'K6_OUT=experimental-prometheus-rw'
+      - 'K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write'
+      - 'K6_PROMETHEUS_RW_TREND_STATS=p(90),p(95),avg,min,max'
 
-    command: run /app/test_simple.js
+    command: run /app/test.js
     # Recomanat si vols assegurar que l'API estigui en marxa abans que k6
     #depends_on:
     #  - contenidorapi

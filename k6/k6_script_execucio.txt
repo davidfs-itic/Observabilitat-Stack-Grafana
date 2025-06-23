@@ -1,0 +1,165 @@
+#!/bin/bash
+
+# run-tests.sh - Script para ejecutar diferentes tipos de pruebas K6
+
+echo "🧪 K6 Test Suite - API Reserves"
+echo "=================================="
+
+# Colores para output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Función para mostrar uso
+show_usage() {
+    echo "Uso: $0 [TIPO_PRUEBA] [OPCIONES]"
+    echo ""
+    echo "Tipos de prueba disponibles:"
+    echo "  smoke     - Prueba básica de funcionalidad (1 usuario)"
+    echo "  load      - Prueba de carga normal (hasta 10 usuarios)"
+    echo "  stress    - Prueba de estrés (hasta 50 usuarios)"
+    echo "  spike     - Prueba de picos (hasta 100 usuarios)"
+    echo "  endurance - Prueba de resistencia (larga duración)"
+    echo ""
+    echo "Opciones:"
+    echo "  --url URL     - URL base de la API (default: http://localhost:8000)"
+    echo "  --output FILE - Archivo de salida para métricas"
+    echo "  --html        - Generar reporte HTML"
+    echo ""
+    echo "Ejemplos:"
+    echo "  $0 smoke"
+    echo "  $0 load --url http://mi-api:8000"
+    echo "  $0 stress --output results.json --html"
+}
+
+# Configuración por defecto
+BASE_URL="http://localhost:8000"
+OUTPUT_FILE=""
+HTML_REPORT=false
+TEST_TYPE=""
+
+# Procesar argumentos
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        smoke|load|stress|spike|endurance)
+            TEST_TYPE="$1"
+            shift
+            ;;
+        --url)
+            BASE_URL="$2"
+            shift 2
+            ;;
+        --output)
+            OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        --html)
+            HTML_REPORT=true
+            shift
+            ;;
+        -h|--help)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}❌ Opción desconocida: $1${NC}"
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Verificar que se especificó un tipo de prueba
+if [ -z "$TEST_TYPE" ]; then
+    echo -e "${RED}❌ Debe especificar un tipo de prueba${NC}"
+    show_usage
+    exit 1
+fi
+
+# Verificar que K6 está instalado
+if ! command -v k6 &> /dev/null; then
+    echo -e "${RED}❌ K6 no está instalado${NC}"
+    echo "Instálalo desde: https://k6.io/docs/getting-started/installation/"
+    exit 1
+fi
+
+# Verificar conectividad con la API
+echo -e "${BLUE}🔍 Verificando conectividad con ${BASE_URL}...${NC}"
+if curl -s --max-time 10 "${BASE_URL}/" > /dev/null; then
+    echo -e "${GREEN}✅ API accesible${NC}"
+else
+    echo -e "${RED}❌ No se puede conectar con la API en ${BASE_URL}${NC}"
+    echo "Asegúrate de que tu aplicación FastAPI esté corriendo"
+    exit 1
+fi
+
+# Construir comando K6
+K6_CMD="k6 run"
+
+# Agregar configuración específica del tipo de prueba
+case $TEST_TYPE in
+    smoke)
+        echo -e "${YELLOW}🔥 Ejecutando prueba SMOKE...${NC}"
+        K6_CMD="$K6_CMD --vus 1 --duration 30s"
+        ;;
+    load)
+        echo -e "${YELLOW}⚖️ Ejecutando prueba de CARGA...${NC}"
+        # Usa la configuración por defecto del script
+        ;;
+    stress)
+        echo -e "${YELLOW}💪 Ejecutando prueba de ESTRÉS...${NC}"
+        K6_CMD="$K6_CMD --stage 30s:20 --stage 1m:50 --stage 30s:0"
+        ;;
+    spike)
+        echo -e "${YELLOW}⚡ Ejecutando prueba de PICOS...${NC}"
+        K6_CMD="$K6_CMD --stage 10s:5 --stage 30s:100 --stage 1m:5 --stage 10s:0"
+        ;;
+    endurance)
+        echo -e "${YELLOW}🏃 Ejecutando prueba de RESISTENCIA...${NC}"
+        K6_CMD="$K6_CMD --vus 10 --duration 10m"
+        ;;
+esac
+
+# Configurar salida
+if [ -n "$OUTPUT_FILE" ]; then
+    K6_CMD="$K6_CMD --out json=$OUTPUT_FILE"
+    echo -e "${BLUE}📊 Métricas se guardarán en: $OUTPUT_FILE${NC}"
+fi
+
+if [ "$HTML_REPORT" = true ]; then
+    HTML_FILE="k6-report-$(date +%Y%m%d_%H%M%S).html"
+    K6_CMD="$K6_CMD --out web-dashboard=export=$HTML_FILE"
+    echo -e "${BLUE}📈 Reporte HTML se generará: $HTML_FILE${NC}"
+fi
+
+# Agregar variables de entorno
+export BASE_URL
+
+# Ejecutar prueba
+echo -e "${BLUE}🚀 Ejecutando: $K6_CMD test-api-reserves.js${NC}"
+echo "=================================="
+
+$K6_CMD test-api-reserves.js
+
+EXIT_CODE=$?
+
+# Mostrar resultado
+echo "=================================="
+if [ $EXIT_CODE -eq 0 ]; then
+    echo -e "${GREEN}✅ Prueba completada exitosamente${NC}"
+    
+    if [ "$HTML_REPORT" = true ]; then
+        echo -e "${BLUE}📈 Reporte HTML disponible: $HTML_FILE${NC}"
+    fi
+    
+    if [ -n "$OUTPUT_FILE" ]; then
+        echo -e "${BLUE}📊 Métricas guardadas en: $OUTPUT_FILE${NC}"
+        echo -e "${BLUE}💡 Puedes analizar las métricas con: k6 cloud $OUTPUT_FILE${NC}"
+    fi
+else
+    echo -e "${RED}❌ La prueba falló con código de salida: $EXIT_CODE${NC}"
+fi
+
+exit $EXIT_CODE

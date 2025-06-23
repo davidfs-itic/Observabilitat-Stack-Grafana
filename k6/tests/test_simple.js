@@ -3,6 +3,7 @@ import { check, sleep } from 'k6';
 
 // Configuració del test
 export const options = {
+  insecureSkipTLSVerify: true,
   stages: [
     { duration: '30s', target: 10 }, // Rampa fins a 10 usuaris en 30s
     { duration: '1m', target: 10 },  // Mantenir 10 usuaris per 1 minut
@@ -22,3 +23,4 @@ export default function () {
   
   // Pausa entre requests
   sleep(1);
+}
