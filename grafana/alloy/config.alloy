@@ -45,14 +45,14 @@ loki.source.file "system_logs" {
 }
 
 // Recollir logs dels contenidors Docker
-loki.source.docker "docker_logs" {
-  host = "unix:///var/run/docker.sock"
-  targets = discovery.docker.containers.targets
-  forward_to = [loki.write.loki.receiver]
-  labels = {
-    job = "docker",
-  }
-}
+//loki.source.docker "docker_logs" {
+//  host = "unix:///var/run/docker.sock"
+//  targets = discovery.docker.containers.targets
+//  forward_to = [loki.write.loki.receiver]
+//  labels = {
+//    job = "docker",
+//  }
+//}
 
 // Enviar logs a Loki
 loki.write "loki" {
